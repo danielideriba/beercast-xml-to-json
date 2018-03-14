@@ -1,31 +1,34 @@
 const express = require('express');
-const port = 8080;
-const apiBeercast = '/beercastapi/programas/';
-const urlBeerCast = 'http://beercast.com.br/feed/';
-// const urlBeerCast = 'http://beercast.com.br/feed/podcast/';
+
 const xml2js = require('xml2js');
-const parseString = xml2js.parseString;
 const http = require('http');
 const util = require('util');
 
-//init
+const parseString = xml2js.parseString;
+
+const PORT = 8080;
+const API_BEERCAST = '/beercastapi/programas/';
+const URL_BEERCAST = 'http://beercast.com.br/feed/';
+
+
 const app = express();
 
-app.get(apiBeercast, nocache,sendContent);
+app.get(API_BEERCAST, nocache, sendContent);
 
-function sendContent(req, res){
-  xmlToJson(urlBeerCast, function(err, data) {
+function sendContent(req, res) {
+  xmlToJson(URL_BEERCAST, function (err, data) {
     if (err) {
-      return console.err(err);
+      console.err(err);
+      res.status('Unable to process request');
     } else {
-      res.header('Content-Type', "");
-      res.header('Content-Length', res.length);
+      let channel = data.rss.channel;
 
-      var channel = data.rss.channel;
-      var rssNew = { items: [] };
-      if (util.isArray(data.rss.channel)){
+      const rssNew = { items: [] };
+
+      if (util.isArray(data.rss.channel)) {
         channel = data.rss.channel[0];
       }
+
       if (channel.title) {
         rssNew.title = channel.title[0];
       }
@@ -44,38 +47,39 @@ function sendContent(req, res){
         if (!util.isArray(channel.item)) {
           channel.item = [channel.item];
         }
-        channel.item.forEach(function (val) {
-          var obj = {};
+
+        channel.item.forEach(val => {
+          const obj = {};
           obj.title = !util.isNullOrUndefined(val.title) ? val.title[0] : '';
           obj.description = !util.isNullOrUndefined(val.description) ? val.description[0] : '';
           obj.url = obj.link = !util.isNullOrUndefined(val.link) ? val.link[0] : '';
-          
+
           if (val.pubDate) {
             obj.created = Date.parse(val.pubDate[0]);
           }
-          if(val.postthumbnail){
+          if (val.postthumbnail) {
             obj.postthumbnail = val.postthumbnail[0];
           }
-          if(val.fullimage){
+          if (val.fullimage) {
             obj.fullimage = val.fullimage[0];
           }
 
           if (val.enclosure) {
             obj.enclosures = [];
             var enc = {};
-            if(val.enclosure['0']['$']['url']){
+            if (val.enclosure['0']['$']['url']) {
               enc.audio = val.enclosure['0']['$']['url'];
             }
-            if(val.enclosure['0']['$']['url']){
+            if (val.enclosure['0']['$']['url']) {
               enc.length = val.enclosure['0']['$']['length'];
             }
-            if(val.enclosure['0']['$']['type']){
+            if (val.enclosure['0']['$']['type']) {
               enc.type = val.enclosure['0']['$']['type'];
             }
             obj.enclosures.push(enc);
           }
 
-           rssNew.items.push(obj);
+          rssNew.items.push(obj);
         });
       }
 
@@ -85,23 +89,23 @@ function sendContent(req, res){
 }
 
 function xmlToJson(url, callback) {
-  var req = http.get(url, function(res) {
-    var xml = '';
+  http.get(url, function (res) {
+    let xml = '';
 
-    res.on('data', function(chunk) {
+    res.on('data', function (chunk) {
       xml += chunk;
     });
 
-    res.on('error', function(e) {
+    res.on('error', function (e) {
       callback(e, null);
     });
 
-    res.on('timeout', function(e) {
+    res.on('timeout', function (e) {
       callback(e, null);
     });
 
-    res.on('end', function() {
-      parseString(xml, function(err, result) {
+    res.on('end', function () {
+      parseString(xml, function (err, result) {
         callback(null, result);
       });
     });
@@ -115,6 +119,6 @@ function nocache(req, res, next) {
   next();
 }
 
-app.listen(port, function(){
-    console.log('Server iniciado na porta: ' + port);
+app.listen(PORT, function () {
+  console.log(`Server iniciado na porta: ${PORT}. Please access ${API_BEERCAST}`);
 });

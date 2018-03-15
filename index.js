@@ -13,7 +13,7 @@ const URL_BEERCAST = 'http://beercast.com.br/feed/';
 
 const app = express();
 
-app.get(API_BEERCAST, nocache, sendContent);
+app.get(API_BEERCAST+":pages?", nocache, sendContent);
 
 function sendContent(req, res) {
   xmlToJson(URL_BEERCAST, function (err, data) {
@@ -22,8 +22,9 @@ function sendContent(req, res) {
       res.status('Unable to process request');
     } else {
       let channel = data.rss.channel;
-
-      const rssNew = { items: [] };
+      let pages = (req.params.pages != null) ? (req.params.pages*10) : 0;
+      
+      const rssNew = { items: [] }; 
 
       if (util.isArray(data.rss.channel)) {
         channel = data.rss.channel[0];
@@ -48,7 +49,11 @@ function sendContent(req, res) {
           channel.item = [channel.item];
         }
 
-        channel.item.forEach(val => {
+        channel.item.some(function (val, i){
+          if(pages > 0 && pages == i){
+              return true;
+          }
+
           const obj = {};
           obj.title = !util.isNullOrUndefined(val.title) ? val.title[0] : '';
           obj.description = !util.isNullOrUndefined(val.description) ? val.description[0] : '';

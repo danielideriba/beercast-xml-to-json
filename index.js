@@ -6,7 +6,7 @@ const util = require('util');
 
 const parseString = xml2js.parseString;
 
-const PORT = 8080;
+const PORT = 3000;
 const API_BEERCAST = '/beercastapi/programas/';
 const URL_BEERCAST = 'http://beercast.com.br/feed/';
 
@@ -52,6 +52,11 @@ function sendContent(req, res) {
         channel.item.some(function (val, i){
           if(pages > 0 && pages == i){
               return true;
+          }
+
+          //Filtro de categorias (Modificar)
+          if(val.title[0].indexOf("Boa Cerveja-Feira") !== -1){
+            return;
           }
 
           const obj = {};
